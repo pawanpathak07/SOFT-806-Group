@@ -1,4 +1,4 @@
-# ---- WorkFlowHub frontend (React + Vite) ----
+# WorkFlowHub frontend (React + Vite) 
 # Stage 1: install packages with npm and build the static site
 FROM node:20-alpine AS build
 WORKDIR /app
