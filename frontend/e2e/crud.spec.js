@@ -2,9 +2,23 @@
 import { test, expect } from '@playwright/test';
 
 test('User can create, view, edit, move and delete a workflow item', async ({ page }) => {
-  // 1. Register a unique test account
-  await page.goto('/');
-  await page.goto('/');
+// 1. Register a unique test account
+
+// Detect browser errors
+page.on('requestfailed', request => {
+  console.log('REQUEST FAILED:', request.url(), request.failure()?.errorText);
+});
+
+page.on('response', response => {
+  if (response.status() === 404) {
+    console.log('404 URL:', response.url());
+  }
+});
+
+await page.goto('/');
+
+// Pause so we can see the WorkflowHub login page
+await page.pause();
 
 // Debugging: detect failed network requests
 page.on('requestfailed', request => {
@@ -38,6 +52,8 @@ page.on('console', message => {
   await expect(
     page.getByRole('button', { name: /New item/ })
   ).toBeVisible({ timeout: 15000 });
+  // Pause to inspect the WorkflowHub task board
+await page.pause();
 
   // 2. Create a workflow item
   await page.getByRole('button', { name: /New item/ }).click();
