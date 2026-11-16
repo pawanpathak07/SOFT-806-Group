@@ -13,7 +13,6 @@ class AuthThrottleMixin:
 
     throttle_scope = "auth"
 
-
 class RegisterView(AuthThrottleMixin, APIView):
     permission_classes = [AllowAny]
     authentication_classes = []

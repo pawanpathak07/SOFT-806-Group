@@ -7,15 +7,21 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@vitejs/plugin-react": "4.3.4",
     "vite": "5.4.11",
     "vitest": "2.1.8"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
   }
 }

@@ -1,4 +1,4 @@
-# ---- WorkFlowHub backend (Django REST Framework) ----
+# WorkFlowHub backend (Django REST Framework)
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
