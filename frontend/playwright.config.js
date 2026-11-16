@@ -4,7 +4,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
-workers: 1,
+  workers: 1,
   reporter: 'html',
 
   use: {
@@ -12,16 +12,16 @@ workers: 1,
     trace: 'on-first-retry',
   },
 
- projects: [
-  {
-    name: 'Google Chrome',
-    use: {
-      ...devices['Desktop Chrome'],
-      channel: 'chrome',
-      headless: false,
+  projects: [
+    {
+      name: 'Google Chrome',
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        headless: true,
+      },
     },
-  },
-],
+  ],
 
   webServer: {
     command: 'npm run dev -- --host 127.0.0.1 --port 5173 --strictPort',
