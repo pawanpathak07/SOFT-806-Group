@@ -17,8 +17,7 @@ page.on('response', response => {
 
 await page.goto('/');
 
-// Pause so we can see the WorkflowHub login page
-await page.pause();
+
 
 // Debugging: detect failed network requests
 page.on('requestfailed', request => {
@@ -52,8 +51,6 @@ page.on('console', message => {
   await expect(
     page.getByRole('button', { name: /New item/ })
   ).toBeVisible({ timeout: 15000 });
-  // Pause to inspect the WorkflowHub task board
-await page.pause();
 
   // 2. Create a workflow item
   await page.getByRole('button', { name: /New item/ }).click();
