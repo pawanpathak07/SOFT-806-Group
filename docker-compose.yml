@@ -4,7 +4,7 @@ services:
     build: ./backend
     env_file: .env
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - backend_data:/data
     restart: unless-stopped
@@ -13,9 +13,9 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8001/api}
     ports:
-      - "3000:80"
+      - "3001:80"
     depends_on:
       - backend
     restart: unless-stopped
