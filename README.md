@@ -1,69 +1,147 @@
 # WorkFlowHub
 
-WorkFlowHub is a full-stack task management application developed for the SOFT806 CI/CD assignment at Auckland Institute of Studies (AIS), Trimester 3, 2026.
+A small full-stack workflow tracker for the SOFT806 CI/CD assignment (AIS, Trimester 3, 2026). Users can register, log in, and manage workflow items on a three-column board: Pending, In Progress, and Completed. Each item can have a priority and a due date.
 
-The application helps users organise and manage their daily tasks. Users can register, log in, create and update tasks, set priorities and due dates, change task statuses, and delete tasks.
+| Part | Technology | Location |
+|---|---|---|
+| Backend API | Django 5 and Django REST Framework | `backend/` |
+| Frontend | React 18 and Vite | `frontend/` |
+| Database | PostgreSQL 16 | `db` service in `docker-compose.yml` |
+| Containers | Docker and Docker Compose | `docker-compose.yml` and each app's `Dockerfile` |
+| CI | GitHub Actions and CircleCI | `.github/workflows/ci.yml`, `.circleci/config.yml` |
 
-## Technologies Used
+## Run with Docker Compose
 
-- Frontend: React 18 and Vite
-- Backend: Django 5 and Django REST Framework
-- Database: SQLite
-- Containerisation: Docker and Docker Compose
-- CI/CD: GitHub Actions and CircleCI
-- Testing: Django tests, Vitest and Playwright
+Start Docker Desktop or Docker Engine with Docker Compose. Run the commands below from the project root.
 
-## Run with Docker
+### 1. Configure the environment
 
-Create the environment file:
-
-```powershell
-copy .env.example .env
-```
-
-Add your Django secret key to `.env`, then run:
+On Windows PowerShell:
 
 ```powershell
-docker compose up --build
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Access the application:
+On macOS or Linux:
 
-- Frontend: http://localhost:3001
-- Backend health check: http://localhost:8001/api/health/
+```bash
+if [ ! -f .env ]; then cp .env.example .env; fi
+```
 
-The ports `3001` and `8001` are used because the default ports were already occupied on my computer.
+Open the root `.env` file. If it already existed, add any missing PostgreSQL variables from `.env.example`. Set `DJANGO_SECRET_KEY` to a long random value and replace the `POSTGRES_PASSWORD` placeholder with a local password. The default database and role are both `workflowhub`. Keep `.env` out of Git.
 
-## Run Tests
+### 2. Start the application
 
-Backend:
+```bash
+docker compose up -d --build --wait
+docker compose ps
+```
+
+Compose waits for PostgreSQL to pass its health check before starting Django. Django applies migrations during backend startup. The `db` and `backend` services should show `healthy`.
+
+- [Frontend](http://localhost:3000)
+- [API health check](http://localhost:8000/api/health/)
+
+### 3. Check migrations and run backend tests
+
+Run these commands while the Compose services are running:
+
+```bash
+docker compose exec backend python manage.py migrate --noinput
+docker compose exec backend python manage.py showmigrations
+docker compose exec backend python manage.py makemigrations --check --dry-run
+docker compose exec backend python manage.py test --verbosity 2
+```
+
+In `showmigrations`, `[X]` marks an applied migration. The dry-run check reports `No changes detected` when the models and migration files agree. Django creates a separate PostgreSQL test database for the test suite and removes it when the run finishes.
+
+### Database persistence and existing SQLite data
+
+Compose stores PostgreSQL data in the `postgres_data` named volume. The data survives container replacement while the volume is retained. `docker compose down` stops and removes the containers while keeping the named volume. Adding `-v` removes the named volume and deletes its data.
+
+This setup starts with a fresh PostgreSQL database. Django migrations create the schema. Moving existing SQLite records requires a separate export and import. Keep the original SQLite file or legacy volume if those records may be needed later.
+
+Once PostgreSQL has initialised the volume, changing `POSTGRES_PASSWORD` in `.env` alone does not change the existing database role's password. Update the role's password in PostgreSQL as well if you need to change it.
+
+## Run without Docker
+
+Install and start PostgreSQL. Create a database and a login role that owns it. To run the Django tests, give the local role permission to create a test database.
+
+Set the `POSTGRES_*` variables from the configuration table in your terminal before running Django. The values must match your PostgreSQL database and role. Use `$env:VARIABLE = "value"` in PowerShell or `export VARIABLE="value"` on macOS/Linux. Django reads these values from the process environment.
+
+### Backend (Python 3.12)
+
+On Windows PowerShell, from the project root:
 
 ```powershell
 cd backend
-python manage.py test
+python -m venv .venv
+$env:DJANGO_DEBUG = "True"
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py runserver
 ```
 
-Frontend:
+On macOS or Linux, from the project root:
 
-```powershell
-cd frontend
-npm test
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+export DJANGO_DEBUG=True
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
 ```
 
-Playwright end-to-end tests:
+The backend is available at <http://localhost:8000>. To run the tests, use `.\.venv\Scripts\python.exe manage.py test` on Windows or `python manage.py test` with the virtual environment active on macOS/Linux.
 
-```powershell
-npx playwright test
+### Frontend (Node.js 20 or later)
+
+Open a second terminal at the project root and go to `frontend/`. For a first-time setup, copy the frontend's `.env.example` to `.env` using `Copy-Item .env.example .env` in PowerShell or `cp .env.example .env` on macOS/Linux. Then run:
+
+```bash
+npm install
+npm run dev
 ```
 
-## CI/CD
+The frontend is available at <http://localhost:5173>. Run `npm test` from `frontend/` to run the frontend tests.
 
-GitHub Actions and CircleCI are used to automate testing and check code changes. This helps identify problems early and maintain the quality of the application.
+## API summary
 
-## Project Management
+| Method | URL | Purpose |
+|---|---|---|
+| POST | `/api/auth/register/` | Create an account and return a token |
+| POST | `/api/auth/login/` | Log in and return a token |
+| POST | `/api/auth/logout/` | Log out and invalidate the token |
+| GET | `/api/auth/me/` | Return the current user |
+| GET, POST | `/api/items/` | List or create workflow items. Use `?status=` to filter the list. |
+| GET, PUT, PATCH, DELETE | `/api/items/<id>/` | Retrieve, update, or delete a workflow item |
+| GET | `/api/health/` | Check whether the API is available |
 
-GitHub Projects is used to organise tasks through a Kanban board with Backlog, To Do, In Progress, In Review and Done columns. Feature branches and pull requests are used to manage and review code changes.
+Send the token as `Authorization: Token <token>` for authenticated requests.
 
-## Learning Outcome
+## Configuration
 
-This project gave me practical experience in full-stack development, automated testing, Docker, CI/CD pipelines and GitHub collaboration.
+| Variable | Used by | Purpose |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | Backend | Django secret key. Keep the real value out of Git. |
+| `DJANGO_DEBUG` | Backend | Set to `True` for local development when needed. |
+| `DJANGO_ALLOWED_HOSTS` | Backend | Comma-separated list of allowed host names. |
+| `CORS_ALLOWED_ORIGINS` | Backend | Comma-separated list of frontend origins allowed to call the API. |
+| `POSTGRES_DB` | PostgreSQL and backend | Database name. Defaults to `workflowhub`. |
+| `POSTGRES_USER` | PostgreSQL and backend | Database login role. Defaults to `workflowhub`. |
+| `POSTGRES_PASSWORD` | PostgreSQL and backend | Password for the database role. Required by Compose. |
+| `POSTGRES_HOST` | Backend | Defaults to `127.0.0.1` for direct local runs. Compose sets it to `db`. |
+| `POSTGRES_PORT` | Backend | Defaults to `5432`. Compose uses `5432` on its internal network. |
+| `VITE_API_URL` | Frontend | API base URL. For local setup, use `http://localhost:8000/api`. Set it before starting Vite or building the frontend. |
+
+## Continuous integration
+
+GitHub Actions and CircleCI are configured in `.github/workflows/ci.yml` and `.circleci/config.yml`. Check the pipeline run for the relevant commit or pull request to see which jobs ran and their results.
+
+Store pipeline secrets in GitHub Actions secrets or CircleCI project environment variables.
+
+## Project workflow
+
+The project backlog is in `docs/backlog.json`. Work is tracked through GitHub issues and the project Kanban board. Develop changes on a feature branch, link the related issues in the pull request, and request peer review before merging into `main`.
